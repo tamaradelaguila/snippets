@@ -1,0 +1,20 @@
+%% TO CHECK ALL ROI INDIVIDUALLY
+% TO CHECK ALL ROI
+nfish = 6;
+VSDI = MOT('load', nfish);
+
+disp(['side of somatic side:' VSDI.info.Sside])
+for roi = 1:length(VSDI.roi.labels)
+     roicirc_preview_multiple(VSDI.crop.preview, VSDI.roi.circle.center(roi,:), VSDI.roi.circle.R); 
+title([num2str(VSDI.ref) ':' VSDI.roi.labels{roi}])
+pause
+close
+end
+
+disp(['side of somatic side:' VSDI.info.Sside])
+for roi = 1:length(VSDI.roi.labels)
+roi_preview(VSDI.backgr(:,:,VSDI.nonanidx(1)),  VSDI.roi.manual_poly{roi}); %see in a selected frame
+title([num2str(VSDI.ref) ':' VSDI.roi.labels{roi}])
+pause
+close
+end
