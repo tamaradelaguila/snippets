@@ -1,3 +1,10 @@
+
+if strcmpi(outfield, 'wmeanslope'),
+flagslope = 1;
+else
+    flagslope = 0;
+end
+
 % Params
 slope.window = [0, 200]; %ms
 slope.windowidx = dsearchn(VSDI.timebase, makeCol(slope.window));
@@ -17,3 +24,4 @@ idxend = slope.windowidx(end);
 elseif ~flagslope
     mmaps(rowi, coli, triali) =  output.(outfield);
 end %if flagslope
+
