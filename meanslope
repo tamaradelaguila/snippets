@@ -1,0 +1,19 @@
+% Params
+slope.window = [0, 200]; %ms
+slope.windowidx = dsearchn(VSDI.timebase, makeCol(slope.window));
+slope.windowidx = [slope.windowidx(1) slope.windowidx(end)]; 
+
+% INSIDE PEAK2PEAK LOOP
+if flagslope
+%                         idx0= dsearchn(VSDI.timebase, 0);%get 0 index
+%                         idxend = output.peakidx(2);
+idx0 = slope.windowidx(1);
+idxend = slope.windowidx(end);
+    waveW = wave(idx0:idxend);
+    slopemean = mean(diff(waveW));
+    
+    mmaps(rowi, coli, triali) = slopemean;
+    
+elseif ~flagslope
+    mmaps(rowi, coli, triali) =  output.(outfield);
+end %if flagslope
