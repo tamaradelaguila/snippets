@@ -1,4 +1,4 @@
-%% ONLY MEASURE MAPS
+%%  MEASURE MAPS + 
 
 % THIS CODE IS TRICKY IN THAT NOT ALL FISH HAVE THE SAME TIMEBASE, SO IT
 % HAS TO BE ADJUSTED. IT IS IMPORTANT THEREFORE TO TAKE THIS INTO ACCOUNT
@@ -23,7 +23,7 @@ cd(working)
 % SETTINGS
 
 sourcedata = 'normal';
-% selroinames = {'dm4m_R2','dm2_R2','dm1_R','dldm_R2'}; %4roi
+selroinames_ini = {'dm4m_c', 'dm4l_c','dm3_c','dm2_c','dm1_c','dldm_c','dm4m_i', 'dm4l_i','dm3_i','dm2_i','dm1_i'}; %4roi
 % 
 % roikind = 'circle'; %
 % roikind = 'anat';
@@ -104,6 +104,35 @@ for reject_on = 1  %@ SET
         VSDmov = MOT('loadmovie',nfish,ref_movie);
         movies = VSDmov.data ;
         F0 = VSDmov.F0;
+        
+        %----------------------------------------------------------------
+        % ADJUST SELECTED ROI  (according to whrether the roi exists in the
+        % fish
+        %----------------------------------------------------------------
+        i = 1;
+        for roii = 1:length(selroinames)
+            idx =  find(contains(VSDI.roi.labels,selroinames{roii}));
+            if idx
+                selroinames{i} = VSDI.roi.labels{idx};
+                i = i+1;
+            end
+        end
+        
+        % clear newnames
+        %----------------------------------------------------------------
+        % SELECT ROI
+        %----------------------------------------------------------------
+       selroi =name2idx(selroinames, VSDI.roi.labels);
+        switch roikind
+            case 'circle'
+                roilabels = VSDI.roi.labels_circ;
+                masks =  VSDI.roi.circle.mask;
+                
+            case 'anat'
+                roilabels = VSDI.roi.labels;
+                masks = VSDI.roi.manual_mask;
+        end
+        
         
         %----------------------------------------------------------------
         % CONTROL ROI PICTURE
@@ -257,7 +286,7 @@ for reject_on = 1  %@ SET
                             slopemean = mean(diff(waveW));
                             maps.slope(xi,yi,ci) = slopemean;
                             
-                            clear pixelwave slopemean
+                            clear pixelwave waveW slopemean 
 
                         end % for yi
                     end % for xi
@@ -284,30 +313,17 @@ for reject_on = 1  %@ SET
         
         mapsZ.slope = reshape(Zslope, [dim(1) dim(2) dim(3)]);
 
-%         %----------------------------------------------------------------
-%         % SELECT ROI
-%         %----------------------------------------------------------------
-%         switch roikind
-%             case 'circle'
-%                 selroi =name2idx(selroinames, VSDI.roi.labels_circ);
-%                 roilabels = VSDI.roi.labels_circ;
-%                 masks =  VSDI.roi.circle.mask;
-%                 
-%             case 'anat'
-%                 selroi =name2idx(selroinames, VSDI.roi.labels);
-%                 roilabels = VSDI.roi.labels;
-%                 masks = VSDI.roi.manual_mask;
-%         end
-%         
-%         
+
 %         % -------------------------------------------
 %         % GET MEASURES OF ROI WAVES FOR EACH TRIAL - for
 %         % checking
 %         % -------------------------------------------
-%         
+%         !!!!! AT THE MOMENT IT CANNOT BE RUN BECAUSE ROILABELS MIGHT CHANGE FOR
+%        EACH FISH 
+%         % -------------------------------------------
 %         if get_excel_indiv
 %             ci = 0;
-%             ti = 1; ri = 3;
+%             ti = 1; %trial counter
 %             for condition =  makeRow(cond)
 %                 ci = ci +1;
 %                 
@@ -317,15 +333,24 @@ for reject_on = 1  %@ SET
 %                 end
 %                 
 %                 for triali = makeRow(sel_trials) %each trial will be saved in a row
-%                     ti = ti+1;
+%                     ti = ti+1; % trial marker independent from triali (because will loop through trials across conditions)
 %                     movie2plot = movies(:,:,idxrange,triali);
-%                     ri= 3;
+%                     ri= 3; % row counter
 %                     for roii = makeRow(selroi) %each roi in a column
-%                         ri= ri+1;
+%                         
+%                         ri= ri+1; 
 %                         roimask = masks(:,:, roii);
 %                         %                             meanF0 = squeeze(mean(VSDmov.F0(:,:,triali),3));
 %                         roiwave = roi_TSave(movie2plot,roimask);
 %                         temp = devo_peak2peak(roiwave, VSDI.timebase(idxrange), feedf.window, [], feedf.method, 0, 0);
+%                         
+%                         idx0 = slope.windowidx(1);
+%                         idxend = slope.windowidx(end);
+%                         waveW = roiwave(idx0:idxend);
+%                         slopemean = mean(diff(waveW));
+%                         
+%                         temp.slope = slopemean;
+%                         clear waveW slopemean
 %                         
 %                         % trial identification / kind
 %                         trialmeasure.peak{ti,1} = triali;
@@ -341,83 +366,96 @@ for reject_on = 1  %@ SET
 %                         % measures: WMEAN
 %                         trialmeasure.wmean{ti,ri} = round(temp.wmean,2);
 %                         
+%                         % trial identification / kind
+%                         trialmeasure.slope{ti,1} = triali;
+%                         trialmeasure.slope{ti,2} = VSDI.trialref(triali);
+%                         trialmeasure.slope{ti,3} = condition;
+%                         % measures: PEAK
+%                         trialmeasure.slope{ti,ri} = round(temp.slope,2);
+%                         
+%                         clear temp
+%                         
 %                         clear roimask roiwave meanF0
 %                         labels{1,1} = 'idx';
 %                         labels{1,2} = 'trial';
 %                         labels{1,3} = 'condition';
 %                         labels{1,ri} = roilabels{roii};
 %                         
-%                         % TRIALS TABLE TO LATER REJECT BASED ON STD
-%                         % trial identification / kind
-%                         trialmat.peak(ti,1) = triali;
-%                         trialmat.peak(ti,2) = VSDI.trialref(triali);
-%                         trialmat.peak(ti,3) = condition;
-%                         % measures: PEAK
-%                         trialmat.peak(ti,ri) = round(temp.peakminusbasel,2);
-%                         
-%                         % trial identification / kind
-%                         trialmat.wmean(ti,1) = triali;
-%                         trialmat.wmean(ti,2) = VSDI.trialref(triali);
-%                         trialmat.wmean(ti,3) = condition;
-%                         % measures: WMEAN
-%                         trialmat.wmean(ti,ri) = round(temp.wmean,2);
-%                         
+% %                         % TRIALS TABLE TO LATER REJECT BASED ON STD
+% %                         % trial identification / kind
+% %                         trialmat.peak(ti,1) = triali;
+% %                         trialmat.peak(ti,2) = VSDI.trialref(triali);
+% %                         trialmat.peak(ti,3) = condition;
+% %                         % measures: PEAK
+% %                         trialmat.peak(ti,ri) = round(temp.peakminusbasel,2);
+% %                         
+% %                         % trial identification / kind
+% %                         trialmat.wmean(ti,1) = triali;
+% %                         trialmat.wmean(ti,2) = VSDI.trialref(triali);
+% %                         trialmat.wmean(ti,3) = condition;
+% %                         % measures: WMEAN
+% %                         trialmat.wmean(ti,ri) = round(temp.wmean,2);
 %                     end % forroii
 %                 end % for triali
 %             end %for condition
 %             % add labels
+%             
 %             trialmeasure.peak(1,1:length(labels)) = labels(1:end);
 %             trialmeasure.wmean(1,1:length(labels)) = labels(1:end);
-%             
+%             trialmeasure.slope(1,1:length(labels)) = labels(1:end);
+% 
 %             excelname = [analysisref 'Zscore_individual_trials' ref_movie '_' refcase 'rej' num2str(reject_on) '_' num2str(numel(selroi)) 'roi.xls'];
 %             labels = {'idx' 'trial' 'cond'};
 %             
 %             % write output (new sheet for each fish
 %             writecell (trialmeasure.peak, fullfile(savein , excelname), 'sheet',  [num2str(VSDI.ref) 'peak'])
 %             writecell (trialmeasure.wmean, fullfile(savein,  excelname), 'sheet',  [num2str(VSDI.ref) 'wmean'])
-%             
+%             writecell (trialmeasure.slope, fullfile(savein,  excelname), 'sheet',  [num2str(VSDI.ref) 'slope'])
+% 
 %             clear trialmeasure
 %             
-%             
 %         end %if get_excel_indiv
-%         
-%         
-%         %% EXTRACT ROI MEASURES AND STORE (for R)
-%         
-%         ci = 0;
-%         for condition =  makeRow(cond)
-%             ci = ci +1;
-%             
-%             if getR
-%                 % -------------------------------------------------------
-%                 % CALCULATE MEASURE FOR EACH ROI AND STORE IN LONG FORMAT
-%                 % -------------------------------------------------------
-%                 for roi_i = makeRow(selroi)
-%                     roimask= masks(:,:,roi_i);
-%                     roipeak = sum(maps.peak(:,:,ci).*roimask) / sum(roimask) ;
-%                     roiwmean = sum(maps.wmean(:,:,ci).*roimask) / sum(roimask) ;
-%                     
-%                     roipeakZ = sum(mapsZ.peak(:,:,ci).*roimask) / sum(roimask) ;
-%                     roiwmeanZ = sum(mapsZ.wmean(:,:,ci).*roimask) / sum(roimask) ;
-%                     
-%                     % FACTORS
-%                     longF{i,1} = suji ; %subject id
-%                     longF{i,2} = roi_i; % roi
-%                     longF{i,3} = roilabels{roi_i}; % roi
-%                     longF{i,4} = ci; % condition (1 = low; 2 = hi; 3 = blank)
-%                     % MEASURES
-%                     longF{i,5} = round(roipeak,2); % outputP(roi_i, condi)
-%                     longF{i,6} = round(roiwmean,2);%
-%                     
-%                     longF{i,7} = round(roipeakZ,2); % outputP(roi_i, condi)
-%                     longF{i,8} = round(roiwmeanZ,2);%
-%                     
-%                     
-%                     i = i+1;
-%                     
-%                 end %for roi_i
-%             end % for if getR
-%         end % for condition
+        
+        
+        %% EXTRACT ROI MEASURES AND STORE (for R)
+        
+        ci = 0;
+        for condition =  makeRow(cond)
+            ci = ci +1;
+            
+            if getR
+                % -------------------------------------------------------
+                % CALCULATE MEASURE FOR EACH ROI AND STORE IN LONG FORMAT
+                % -------------------------------------------------------
+                for roi_i = makeRow(selroi)
+                    roimask= masks(:,:,roi_i);
+                    roipeak = sum(maps.peak(:,:,ci).*roimask) / sum(roimask) ;
+                    roiwmean = sum(maps.wmean(:,:,ci).*roimask) / sum(roimask) ;
+                    roislope = sum(maps.slope(:,:,ci).*roimask) / sum(roimask) ;
+                    
+                    roipeakZ = sum(mapsZ.peak(:,:,ci).*roimask) / sum(roimask) ;
+                    roiwmeanZ = sum(mapsZ.wmean(:,:,ci).*roimask) / sum(roimask) ;
+                    roislopeZ = sum(mapsZ.wmean(:,:,ci).*roimask) / sum(roimask) ;
+                    
+                    % FACTORS
+                    longF{i,1} = suji ; %subject id
+                    longF{i,2} = roi_i; % roi
+                    longF{i,3} = roilabels{roi_i}; % roi
+                    longF{i,4} = ci; % condition (1 = low; 2 = hi; 3 = blank)
+                    % MEASURES
+                    longF{i,5} = round(roipeak,2); % outputP(roi_i, condi)
+                    longF{i,6} = round(roiwmean,2);%
+                    longF{i,7} = round(roislope,2);%
+                    
+                    longF{i,8} = round(roipeakZ,2); % outputP(roi_i, condi)
+                    longF{i,9} = round(roiwmeanZ,2);%
+                    longF{i,10} = round(roislopeZ,2);%
+                    
+                    i = i+1;
+                    
+                end %for roi_i
+            end % for if getR
+        end % for condition
         
         %% PLOT MAPS
         if plotmaps
