@@ -692,7 +692,11 @@ for reject_on = 1  %@ SET
     
 end % for reject_on
 
-% Crested: 09/02/22
+% Created: 09/02/22
 % Based on TORus script: /home/tamara/Documents/MATLAB/VSDI/TORus/plot_code/informes_code/03_figure_sketch/groupplot_measures/group_plot_brain_reprogram_4_Zscore_working.m
 
-% Last Update: 10/02/22: update with slope code
+% Last Update:
+% 
+% 10/02/22: update with slope code, and flexible number of roi (some fish
+% lack dm1 for instance)
+
