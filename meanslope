@@ -1,3 +1,5 @@
+% TFCE SCRIPT
+
 
 if strcmpi(outfield, 'wmeanslope'),
 flagslope = 1;
@@ -25,3 +27,31 @@ elseif ~flagslope
     mmaps(rowi, coli, triali) =  output.(outfield);
 end %if flagslope
 
+
+% MAPS AND R SCRIPT
+
+%slope
+    idx0 = slope.windowidx(1);
+    idxend = slope.windowidx(end);
+    waveW = pixelwave(idx0:idxend);
+    slopemean = mean(diff(waveW));
+    maps.slope(xi,yi,ci) = slopemean;
+    clean slopemean
+
+%% SPATIAL Z-SCORE AMONG CONDITIONS (for each measure)
+dim = size(maps.peak);
+temp_peak = reshape(maps.peak, [dim(1)*dim(2) dim(3)]);
+temp_wmean = reshape(maps.wmean, [dim(1)*dim(2) dim(3)]);
+temp_slope = reshape(maps.slope, [dim(1)*dim(2) dim(3)]);
+
+Zpeak = zscore(maps.peak, 0, 'all');
+Zwmean = zscore(maps.wmean, 0, 'all');
+Zslope = zscore(maps.slope, 0, 'all');
+
+mapsZ.peak =reshape(Zpeak, [dim(1) dim(2) dim(3)]);
+
+mapsZ.wmean =reshape(Zwmean, [dim(1) dim(2) dim(3)]);
+
+mapsZ.slope = reshape(Zslope, [dim(1) dim(2) dim(3)]);
+
+%% PLOT NEW MEASURE --- copy from code
