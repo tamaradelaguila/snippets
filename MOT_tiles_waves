@@ -1,13 +1,14 @@
 clear
 W = pwd;
-cd '/home/tamara/Documents/MATLAB/VSDI/MOT'
+cd 'C:\Users\User\Documents\MatLab\MOT'
 user_settings
 cd(W)
 %----------------------------------------------------------------
 % @SET: fish + conditions
 %----------------------------------------------------------------
-nfish = 1;
+nfish = 2;
 cond_codes = [1];
+
 plottiles = 1;
 savetiles =0;
 plotwaves=1;
@@ -15,23 +16,23 @@ savewaves = 0;
 
 movie_ref = '_04filt1'; %
 
-savein = '/home/tamara/Documents/MATLAB/VSDI/MOT/plot/informes/03_figure_sketch/def_figs/tiles';
+savein = 'C:\Users\User\Documents\MatLab\MOT\plot\tiles_and_waves';
 
 %----------------------------------------------------------------
 % @SET: MEASURE (OR LOOP THROUGH ALL MEASURES)
 %----------------------------------------------------------------
-reject_on= 3;
+reject_on= 0;
 
-setting.manual_reject = 1; %
-setting.GSmethod_reject = 1;  %
-setting.GSabsthres_reject = 1; %
-setting.force_include = 0; %
+setting.manual_visual = 1; %
+% setting.manual_reject = 0; %
+% setting.GSmethod_reject = 0;  %
+% setting.GSabsthres_reject = 0; %
+% setting.force_include = 0; %
 
 %----------------------------------------------------------------
 % @SET: for roi-waves plot
 %----------------------------------------------------------------
-selroinames_ini = {'dm4m_c', 'dm4l_c','dm3_c','dm2_c','dm1_c','dldm_c','dm4m_i', 'dm4l_i','dm3_i','dm2_i','dm1_i'}; %4roi
-
+selroinames_ini = {'dm4m_c', 'dm4m_i'}; %4roi
 
 refroiname = 'dm4m_c'; % respect which the start/end time of the tiles will be set
 
@@ -42,7 +43,7 @@ roikind = 'circle'; %
 %----------------------------------------------------------------
 % LOAD DATA
 %----------------------------------------------------------------
-VSDI = MOT ('load', nfish);
+VSDI = MOT('load', nfish);
 VSDmov = MOT('loadmovie',nfish,movie_ref);
 
 %----------------------------------------------------------------
@@ -55,46 +56,54 @@ end
 
 rejectidx = [];
 
-if setting.manual_reject
-    rejectidx = [rejectidx  makeRow(VSDI.reject.manual)];
+if setting.manual_visual
+    rejectidx = [rejectidx  makeRow(VSDI.(rej).visual)];
 end
 
-if setting.GSabsthres_reject
-    rejectidx = [rejectidx  makeRow(VSDI.(rej).GSabs025)];
-    
-end
-
-if setting.GSmethod_reject
-    rejectidx = [rejectidx makeRow(VSDI.(rej).GSdeviat2sd)];
-
-end
-
-if setting.force_include
-    rejectidx = setdiff(rejectidx, VSDI.reject.forcein);
-    
-end
+% 
+% if setting.manual_reject
+%     rejectidx = [rejectidx  makeRow(VSDI.(rej).manual)];
+% end
+% 
+% if setting.GSabsthres_reject
+%     rejectidx = [rejectidx  makeRow(VSDI.(rej).GSabs025)];
+%     
+% end
+% 
+% if setting.GSmethod_reject
+%     rejectidx = [rejectidx makeRow(VSDI.(rej).GSdeviat2sd)];
+% 
+% end
+% 
+% if setting.force_include
+%     rejectidx = setdiff(rejectidx, VSDI.reject.forcein);
+%     
+% end
 
 rejectidx = sort(unique(rejectidx));
 
-%----------------------------------------------------------------
-% ADJUST SELECTED ROI  (according to whrether the roi exists in the
-% fish
-%----------------------------------------------------------------
-i = 1;
-for roii = 1:length(selroinames)
-    idx =  find(contains(VSDI.roi.labels,selroinames{roii}));
-    if idx
-        selroinames{i} = VSDI.roi.labels{idx};
-        i = i+1;
-    end
-end
+        %----------------------------------------------------------------
+        % ADJUST SELECTED ROI  (according to whrether the roi exists in the
+        % fish
+        %----------------------------------------------------------------
+        ii = 1;
+        selroinames = [];
+        for roii = 1:length(selroinames_ini)
+            idx =  find(contains( VSDI.roi.labels(:,2),selroinames_ini{roii}));
+            if sum(idx)>0
+                selroinames{ii} = VSDI.roi.labels{idx,2};
+                ii = ii+1;
+            end
+            clear idx
+        end
+        
+        % clear newnames
 
-% clear newnames
 %----------------------------------------------------------------
 % SELECT ROI
 %----------------------------------------------------------------
-selroi =name2idx(selroinames, VSDI.roi.labels);
-roilabels = VSDI.roi.labels;
+selroi =name2idx(selroinames, VSDI.roi.labels(:,2));
+roilabels = VSDI.roi.labels(:,2);
 
 switch roikind
     case 'circle'
@@ -108,9 +117,9 @@ end
 %% CODE: TILES + WAVEs (all roi for each condition)
 %----------------------------------------------------------------
 % cond_codes = [201];
-fact_thresh =0.4; % @SET : limits parameters
-fact_clim= 1.2;
-
+% fact_thresh =0.4; % @SET : limits parameters
+fact_thresh =0.7; % @SET : limits parameters
+fact_clim= 1.5;
 
 for condi = makeRow(cond_codes)
     
@@ -164,14 +173,19 @@ for condi = makeRow(cond_codes)
         idxDm4 =name2idx(refroiname, roilabels);
         roimask = masks(:,:,idxDm4);
         
+        wavelimit.ms = 700;
+        wavelimit.idx = dsearchn(VSDI.timebase , wavelimit.ms);
+        
         dm4_wave = roi_TSave(movie2plot,roimask);
         dm4_wave = movmean(dm4_wave ,5);
+        dm4_wave = dm4_wave(1:wavelimit.idx);
         
         fr_pre = 2; %nº of frames before rising the threshold (to set the initial time)
         fr_post = 2; 
         idx.start = find(dm4_wave > tileset.thresh(2), 1, 'first')- fr_pre;
-        idx.end= find(dm4_wave > tileset.thresh(2), 1, 'last') + fr_post;
         
+        idx.end= find(dm4_wave > tileset.thresh(2), 1, 'last') + fr_post;
+
         tileset.start_ms = VSDI.timebase(idx.start);
         tileset.end_ms = VSDI.timebase(idx.end);
         
@@ -280,7 +294,7 @@ for condi = makeRow(cond_codes)
         end
         xlim([wave.start_ms wave.end_ms])
         ylabel('%F')
-        
+        legend(selroinames)
         sgtitle([num2str(VSDI.ref), movie_ref, 'rej', num2str(reject_on), '-cond:' num2str(condi)])
         
         savename= ['waves' num2str(VSDI.ref) movie_ref 'cond' num2str(condi) '_rej'  num2str(reject_on) '_' num2str(numel(sel_trials)) 'trials'];
@@ -303,7 +317,7 @@ blob()
 % newsave = '/home/tamara/Documents/MATLAB/VSDI/MOT/plot/informes_code/03_figure_sketch/def_figs/tiles';
 % saveas(gcf, fullfile(newsave,savename) 'jpg')
 
-%----------------------------------------------------------------
+%-----------------------------------------------------------------
 % PRINT INCLUDED AND EXCLUDED TRIALS
 % ----------------------------------------------------------------
 %
