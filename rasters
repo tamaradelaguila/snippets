@@ -13,7 +13,8 @@ cond_rows = [1:4];
 movie_ref = '_04filt1'; %
 
 saveraster = 0;
-rasterclim = [0 0.003] ; %when [], the script is useful for outliers identification
+rasterclim = [0 0.003] ; %when [], clim is automatically set and 
+the script is useful for outliers identification
 savein = 'C:\Users\User\Documents\MatLab\MOT\plot\rasters';
 
 side = 'ipsi';
